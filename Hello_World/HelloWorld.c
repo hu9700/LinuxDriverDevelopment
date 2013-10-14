@@ -1,6 +1,17 @@
 #include <linux/init.h>
 #include <linux/module.h>
 
+static char * whom = "world";
+static int howmany = 1;
+//receive parameter from insmod or modprobe
+//defined in moduleparam.h
+//parameter type can be bool, invbool, charp, int, long, short, uint, ulong, ushort
+//can be one array module_param_array(name , type, num, perm); it can deny the array is bigger than num
+//perm defined in <linux/stat.h>, it indicate the permission in sysfs, /sys/module
+module_param(howmany, int, S_IRUGO);
+module_param(whom, charp, S_IRUGO);
+
+
 //(__initdata) indecate the data is used for init
 //after init, the data will be free
 
@@ -20,13 +31,18 @@ void hello_show(void)
 
 static int __init hello_init(void)
 {
-	printk(KERN_ALERT "Hello, world\n");
+	int counter = 0;
+	
+	for(counter = 0; counter < howmany; counter ++)
+	{
+		printk(KERN_ALERT "Hello, %s\n", whom);
+	}
 	return 0;
 }
 
 static void __exit hello_exit(void)
 {
-	printk(KERN_ALERT "Goodbye, world\n");
+	printk(KERN_ALERT "Goodbye, %s\n", whom);
 }
 //module init and exit function register
 module_init(hello_init);
