@@ -1,0 +1,4 @@
+#!/bin/bash
+#device major number indicate
+#use ls -l, to get the 5th number
+ls -l $1 | awk '{print $5}'
