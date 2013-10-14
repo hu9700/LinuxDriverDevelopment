@@ -1,0 +1,20 @@
+#!/bin/bash
+PATH_LIST=`ls -C -d ./*/`
+MAKEFILE_PATH="../Makefile.Module"
+
+for PATH in ${PATH_LIST}
+do
+	cd ${PATH}
+	if [ -f ./Makefile ]
+	then
+		cd -
+		continue
+	elif [ -L ./Makefile ]
+	then
+		cd -
+		continue
+	else
+		ln -s ${MAKEFILE_PATH} ./Makefile
+		cd -
+	fi
+done

@@ -1,0 +1,1 @@
+cmd_/home/denvorTHINK/git/LinuxDriverDevelopment/Hello_World/Hello_World.ko := cp /home/denvorTHINK/git/LinuxDriverDevelopment/Hello_World/Hello_World.ko.unsigned /home/denvorTHINK/git/LinuxDriverDevelopment/Hello_World/Hello_World.ko

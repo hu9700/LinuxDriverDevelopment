@@ -1,0 +1,28 @@
+ifneq ($(KERNELRELEASE),)
+obj-m:=${MODULE_NAME}.o
+${MODULE_NAME}-objs:=${OBJ_LIST}
+
+else
+#got the name of the module
+#from it's file name
+MODULE_NAME:=Hello_World
+#$(shell pwd| awk -F/ '{print $NF}')
+
+#get all the file in directory
+FILE_LIST:=$(shell ls -C)
+SRC_LIST:=$(filter %.c, ${FILE_LIST})
+OBJ_LIST:=$(patsubst %.c,%.o,${SRC_LIST})
+export OBJ_LIST
+export MODULE_NAME
+
+KDIR:=/lib/modules/$(shell uname -r)/build
+PWD:=$(shell pwd)
+default:
+	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+clean:
+	rm -f .*.cmd *.o *.mod.c *.ko .v* *~ core Modules.symvers Module.symvers modules.order *.ko.unsigned
+	rm -rf .tmp_versions/ Module.markers
+#	rm -f example/dummy example/feed example/resize example/invert
+test:
+	echo ${OBJ_LIST}
+endif

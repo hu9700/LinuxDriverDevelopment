@@ -1,0 +1,44 @@
+#set the kernel code tree direcotry
+#get kernel version can use `uname -r`
+KERNEL_VERSION:="$(shell uname -r)"
+KERNEL_TREE:=/usr/src/kernels/${KERNEL_VERSION}/arch/x86/include
+
+CC:=gcc
+CC_INCLUDE:=-I ${KERNEL_TREE} -isystem /lib/modules/$(shell uname -r)/build/include
+CC_FLAG:=-c -DMODULE -D__KERNEL__ ${CC_INCLUDE}
+LK_FLAG:=
+MAKE:=make
+
+#got the name of the module
+#from it's file name
+MODULE_DIRECTORY:=$(shell pwd)
+MODULE_ABOVE_DIRECTORY:=$(shell cd ..;pwd)
+MOUDLE_DIRECTORY_NAME:=$(subst ${MODULE_ABOVE_DIRECTORY},,${MODULE_DIRECTORY})
+MODULE_NAME:=$(subst /,,${MOUDLE_DIRECTORY_NAME})
+
+#set the output name
+MODULE_OUT:=${MODULE_NAME}.ko
+
+#get all the file in directory
+FILE_LIST:=$(shell ls -C)
+SRC_LIST:=$(filter %.c, ${FILE_LIST})
+OBJ_LIST:=$(patsubst %.c,%.o,${SRC_LIST})
+
+#rule to compile
+${MODULE_OUT}:${OBJ_LIST}
+	${CC} ${LK_FLAG} ${OBJ_LIST} -o ${MODULE_OUT}
+${OBJ_LIST}:%.o:%.c
+	${CC} ${CC_FLAG} $< -o $@
+
+#phony object
+.PHONY:cleanobj cleanall test
+clean:
+	rm ${OBJ_LIST}
+cleanall:
+	rm ${OBJ_LIST} ${MODULE_OUT}
+test:
+#	echo ${SRC_LIST}
+#	echo ${KERNEL_TREE}
+#	echo ${MODULE_NAME};
+
+
