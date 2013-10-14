@@ -1,0 +1,7 @@
+We will generate four different scull 
+scullsingle	everytime, only once process use that driver module
+scullpriv	it's private to every terminal, because on every terminal, process got different region of memory
+sculluid		you can multiple open it, but only one user each time. When it's busy, you will got error of "device busy"
+scullwuid	you can multiple open it, but only one user each time. When it's busy, you can open it with block.
+
+
