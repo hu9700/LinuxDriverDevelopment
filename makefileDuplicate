@@ -1,20 +1,28 @@
 #!/bin/bash
-PATH_LIST=`ls -C -d ./*/`
+DIRECTORY_LIST=`ls -C -d ./*/`
 MAKEFILE_PATH="../Makefile.Module"
 
-for PATH in ${PATH_LIST}
+echo "Directory list is: ${DIRECTORY_LIST}"
+
+for DIRECTORY in ${DIRECOTRY_LIST}
 do
-	cd ${PATH}
+	cd ${DIRECTORY}
+	echo "Enter ${DIRECTORY}"
 	if [ -f ./Makefile ]
 	then
+		echo "in ${DIRECTORY} exist Makefile"
 		cd -
 		continue
 	elif [ -L ./Makefile ]
 	then
+		echo "ïn ${DIRECTORY} exist Makefile"
 		cd -
 		continue
 	else
+		echo "ïn ${DIRECTORY} add Makefile"
 		ln -s ${MAKEFILE_PATH} ./Makefile
 		cd -
 	fi
 done
+
+echo "Finished Makefile Duplicate"
