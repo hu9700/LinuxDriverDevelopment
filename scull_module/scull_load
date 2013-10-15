@@ -6,19 +6,18 @@ mode="664"
 
 #install the module
 #TODO not finished yet, need to check insmod manpage
-insmod ./scull_module.ko || exit 1
+#what's the meaning $*
+insmod ./scull_module.ko $* || exit 1
 
 #remove stale nodes
 rm -f /dev/${device}[0-3]
 
 #get major number of installed module from /proc/devices
-#TODO not finished yet, need to check format of /proc/devices
-#use -v to set variable to got ${module} in awk script
-major=awk '" " {print $1}' /proc/devices
+major=`awk -v module=${module} 'BEGIN{pat="^"module}$2~pat{print $1}' /proc/devices`
+#maybe several one output, only take the first one
+major=`cat ${major} | awk '{print $1}'`
 
 #create node file
-#TODO not finished yet
-#I need to check mknod manpage to make sure the synctax
 mknod /dev/${device}0 c ${major} 0
 mknod /dev/${device}1 c ${major} 1
 mknod /dev/${device}2 c ${major} 2
