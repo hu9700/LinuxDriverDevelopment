@@ -2,19 +2,11 @@
 #include <linux/module.h>
 #include <linux/cdev.h>//include some file for character device
 #include "scull.h"
+int scull_quantum = SCULL_QUANTUM;
+int scull_qset = SCULL_QSET;
+module_param(scull_quantum, int, S_IRUGO);
+module_param(scull_qset, int, S_IRUGO);
 
-//init file operation structure for scull
-//struct file_operations defined in <linux/fs.h>
-struct file_operations scull_fops = 
-{
-	.owner	= THIS_MODULE,//define in <linux/module.h>
-	.llseek	= scull_llseek,
-	.read	= scull_read,
-	.write	= scull_write,
-	.ioctal	= scull_ioctl,
-	.open	= scull_open,
-	.release= scull_release
-};
 
 //struct file, defined in <linux/fs.h>
 //indicate one opened file. 
@@ -133,6 +125,35 @@ static void scull_setup_dev_old()
 	register_chrdev(scull_major, "scull", &scull_fops);//"scull" will appear in /proc/devices
 	//to unregister
 	//unregister_chrdev(scull_major, "scull");
+}
+
+//alloc and free memory in kernel, defined in <linux/slab.h>
+//void *kmalloc(size_t size, int flags);
+//void kfree(void *ptr);it's validate to transfer NULL point to kfree
+
+//to free all the memory in scull for quantum
+int scull_trim(struct scull_dev *dev)
+{
+	struct scull_qset *next, *dptr;
+	int qset = dev->qset;//"dev" is not NULL
+	int i;
+
+	for(dptr = dev->data; dptr; dptr = next)
+	{
+		//all the list item
+		if(dptr->data)
+		{
+			for(i = 0; i < qset; i ++)
+			{
+				kfree(dptr->data[i]);
+			}
+			kfree(dptr->data);
+			dptr->data = NULL;
+		}
+
+		next = dptr->next;
+		kfree(dptr);
+	}
 }
 
 void scull_cleanup(void)
