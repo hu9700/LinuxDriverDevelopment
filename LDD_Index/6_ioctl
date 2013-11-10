@@ -1,0 +1,92 @@
+#include <linux/ioctl.h>
+声明用来定义 ioctl 命令的宏定义. 当前被 <linux/fs.h> 包含.
+_IOC_NRBITS
+_IOC_TYPEBITS
+_IOC_SIZEBITS
+_IOC_DIRBITS
+ioctl 命令的不同位段所使用的位数. 还有 4 个宏来指定 MASK 和 4 个指定 SHIFT, 但是它们
+主要是给内部使用. _IOC_SIZEBIT 是一个要检查的重要的值, 因为它跨体系改变.
+_IOC_NONE
+_IOC_READ
+_IOC_WRITE
+"方向"位段可能的值. "read" 和 "write" 是不同的位并且可相或来指定 read/write. 这些值是基
+于 0 的.
+_IOC(dir,type,nr,size)
+_IO(type,nr)
+_IOR(type,nr,size)
+_IOW(type,nr,size)
+_IOWR(type,nr,size)
+用来创建 ioclt 命令的宏定义.
+_IOC_DIR(nr)
+_IOC_TYPE(nr)
+_IOC_NR(nr)
+_IOC_SIZE(nr)
+用来解码一个命令的宏定义. 特别地, _IOC_TYPE(nr) 是 _IOC_READ 和 _IOC_WRITE 的
+OR 结合.
+#include <asm/uaccess.h>
+int access_ok(int type, const void *addr, unsigned long size);
+检查一个用户空间的指针是可用的. access_ok 返回一个非零值, 如果应当允许存取.
+VERIFY_READ
+VERIFY_WRITE
+access_ok 中 type 参数的可能取值. VERIFY_WRITE 是 VERIFY_READ 的超集.
+#include <asm/uaccess.h>
+int put_user(datum,ptr);
+int get_user(local,ptr);
+int __put_user(datum,ptr);
+int __get_user(local,ptr);
+用来存储或获取一个数据到或从用户空间的宏. 传送的字节数依赖 sizeof(*ptr). 常规的版本
+调用 access_ok , 而常规版本( __put_user 和 __get_user ) 假定 access_ok 已经被调用了.
+#include <linux/capability.h>
+定义各种 CAP_ 符号, 描述一个用户空间进程可有的能力.
+int capable(int capability);
+返回非零值如果进程有给定的能力.
+#include <linux/wait.h>
+typedef struct { /* ... */ } wait_queue_head_t;
+void init_waitqueue_head(wait_queue_head_t *queue);
+DECLARE_WAIT_QUEUE_HEAD(queue);
+Linux 等待队列的定义类型. 一个 wait_queue_head_t 必须被明确在运行时使用
+init_waitqueue_head 或者编译时使用 DEVLARE_WAIT_QUEUE_HEAD 进行初始化.
+void wait_event(wait_queue_head_t q, int condition);
+int wait_event_interruptible(wait_queue_head_t q, int condition);
+int wait_event_timeout(wait_queue_head_t q, int condition, int time);
+int wait_event_interruptible_timeout(wait_queue_head_t q, int condition,int time);
+使进程在给定队列上睡眠, 直到给定条件值为真值.
+void wake_up(struct wait_queue **q);
+void wake_up_interruptible(struct wait_queue **q);
+void wake_up_nr(struct wait_queue **q, int nr);
+void wake_up_interruptible_nr(struct wait_queue **q, int nr);
+void wake_up_all(struct wait_queue **q);
+void wake_up_interruptible_all(struct wait_queue **q);
+void wake_up_interruptible_sync(struct wait_queue **q);
+唤醒在队列 q 上睡眠的进程. _interruptible 的形式只唤醒可中断的进程. 正常地, 只有一个互
+斥等待者被唤醒, 但是这个行为可被 _nr 或者 _all 形式所改变. _sync 版本在返回之前不重新
+调度 CPU.
+#include <linux/sched.h>
+set_current_state(int state);
+设置当前进程的执行状态. TASK_RUNNING 意味着它已经运行, 而睡眠状态是
+TASK_INTERRUPTIBLE 和 TASK_UNINTERRUPTIBLE.
+void schedule(void);
+选择一个可运行的进程从运行队列中. 被选中的进程可是当前进程或者另外一个.
+typedef struct { /* ... */ } wait_queue_t;
+init_waitqueue_entry(wait_queue_t *entry, struct task_struct *task);
+wait_queue_t 类型用来放置一个进程到一个等待队列.
+void prepare_to_wait(wait_queue_head_t *queue, wait_queue_t *wait, int state);
+void prepare_to_wait_exclusive(wait_queue_head_t *queue, wait_queue_t *wait, int state);
+void finish_wait(wait_queue_head_t *queue, wait_queue_t *wait);
+帮忙函数, 可用来编码一个手工睡眠.
+void sleep_on(wiat_queue_head_t *queue);
+void interruptible_sleep_on(wiat_queue_head_t *queue);
+老式的不推荐的函数, 它们无条件地使当前进程睡眠.
+#include <linux/poll.h>
+void poll_wait(struct file *filp, wait_queue_head_t *q, poll_table *p);
+将当前进程放入一个等待队列, 不立刻调度. 它被设计来被设备驱动的 poll 方法使用.
+int fasync_helper(struct inode *inode, struct file *filp, int mode, struct fasync_struct **fa);
+一个"帮忙者", 来实现 fasync 设备方法. mode 参数是传递给方法的相同的值, 而 fa 指针指向一
+个设备特定的 fasync_struct *.
+void kill_fasync(struct fasync_struct *fa, int sig, int band);
+如果这个驱动支持异步通知, 这个函数可用来发送一个信号到登记在 fa 中的进程.
+int nonseekable_open(struct inode *inode, struct file *filp);
+loff_t no_llseek(struct file *file, loff_t offset, int whence);
+nonseekable_open 应当在任何不支持移位的设备的 open 方法中被调用. 这样的设备应当使
+用 no_llseek 作为它们的 llseek 方法.
+

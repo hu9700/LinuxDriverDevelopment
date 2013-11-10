@@ -1,0 +1,140 @@
+本章已介绍了很多符号给并发的管理. 最重要的这些在此总结:
+#include <semaphore.h>
+定义旗标和其上操作的包含文件.
+DECLARE_MUTEX(name);
+DECLARE_MUTEX_LOCKED(name);
+2 个宏定义, 用来声明和初始化一个在互斥模式下使用的旗标.
+void init_MUTEX(struct semaphore *sem);
+void init_MUTEX_LOCKED(struct semaphore *sem);
+这 2 函数用来在运行时初始化一个旗标.
+void down(struct semaphore *sem);
+int down_interruptible(struct semaphore *sem);
+int down_trylock(struct semaphore *sem);
+void up(struct semaphore *sem);
+加锁和解锁旗标. down 使调用进程进入不可打断睡眠, 如果需要; down_interruptible, 相反, 可
+以被信号打断. down_trylock 不睡眠; 相反, 它立刻返回如果旗标不可用. 加锁旗标的代码必
+须最终使用 up 解锁它.
+struct rw_semaphore;
+init_rwsem(struct rw_semaphore *sem);
+旗标的读者/写者版本和初始化它的函数.
+void down_read(struct rw_semaphore *sem);
+int down_read_trylock(struct rw_semaphore *sem);
+void up_read(struct rw_semaphore *sem);
+获得和释放对读者/写者旗标的读存取的函数.
+void down_write(struct rw_semaphore *sem);
+int down_write_trylock(struct rw_semaphore *sem);
+void up_write(struct rw_semaphore *sem);
+void downgrade_write(struct rw_semaphore *sem);
+
+管理对读者/写者旗标写存取的函数.
+#include <linux/completion.h>
+DECLARE_COMPLETION(name);
+init_completion(struct completion *c);
+INIT_COMPLETION(struct completion c);
+描述 Linux completion 机制的包含文件, 已经初始化 completion 的正常方法.
+INIT_COMPLETION 应当只用来重新初始化一个之前已经使用过的 completion.
+void wait_for_completion(struct completion *c);
+等待一个 completion 事件发出.
+void complete(struct completion *c);
+void complete_all(struct completion *c);
+发出一个 completion 事件. completion 唤醒, 最多, 一个等待着的线程, 而 complete_all 唤醒全
+部等待者.
+void complete_and_exit(struct completion *c, long retval);
+通过调用 complete 来发出一个 completion 事件, 并且为当前线程调用 exit.
+#include <linux/spinlock.h>
+spinlock_t lock = SPIN_LOCK_UNLOCKED;
+spin_lock_init(spinlock_t *lock);
+定义自旋锁接口的包含文件, 以及初始化锁的 2 个方法.
+void spin_lock(spinlock_t *lock);
+void spin_lock_irqsave(spinlock_t *lock, unsigned long flags);
+void spin_lock_irq(spinlock_t *lock);
+void spin_lock_bh(spinlock_t *lock);
+加锁一个自旋锁的各种方法, 并且, 可能地, 禁止中断.
+int spin_trylock(spinlock_t *lock);
+int spin_trylock_bh(spinlock_t *lock);
+上面函数的非自旋版本; 在获取锁失败时返回 0, 否则非零.
+void spin_unlock(spinlock_t *lock);
+void spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags);
+void spin_unlock_irq(spinlock_t *lock);
+void spin_unlock_bh(spinlock_t *lock);
+释放一个自旋锁的相应方法.
+rwlock_t lock = RW_LOCK_UNLOCKED
+rwlock_init(rwlock_t *lock);
+
+初始化读者/写者锁的 2 个方法.
+void read_lock(rwlock_t *lock);
+void read_lock_irqsave(rwlock_t *lock, unsigned long flags);
+void read_lock_irq(rwlock_t *lock);
+void read_lock_bh(rwlock_t *lock);
+获得一个读者/写者锁的读存取的函数.
+void read_unlock(rwlock_t *lock);
+void read_unlock_irqrestore(rwlock_t *lock, unsigned long flags);
+void read_unlock_irq(rwlock_t *lock);
+void read_unlock_bh(rwlock_t *lock);
+释放一个读者/写者自旋锁的读存取.
+void write_lock(rwlock_t *lock);
+void write_lock_irqsave(rwlock_t *lock, unsigned long flags);
+void write_lock_irq(rwlock_t *lock);
+void write_lock_bh(rwlock_t *lock);
+获得一个读者/写者锁的写存取的函数.
+void write_unlock(rwlock_t *lock);
+void write_unlock_irqrestore(rwlock_t *lock, unsigned long flags);
+void write_unlock_irq(rwlock_t *lock);
+void write_unlock_bh(rwlock_t *lock);
+释放一个读者/写者自旋锁的写存取的函数.
+#include <asm/atomic.h>
+atomic_t v = ATOMIC_INIT(value);
+void atomic_set(atomic_t *v, int i);
+int atomic_read(atomic_t *v);
+void atomic_add(int i, atomic_t *v);
+void atomic_sub(int i, atomic_t *v);
+void atomic_inc(atomic_t *v);
+void atomic_dec(atomic_t *v);
+int atomic_inc_and_test(atomic_t *v);
+int atomic_dec_and_test(atomic_t *v);
+int atomic_sub_and_test(int i, atomic_t *v);
+int atomic_add_negative(int i, atomic_t *v);
+int atomic_add_return(int i, atomic_t *v);
+int atomic_sub_return(int i, atomic_t *v);
+int atomic_inc_return(atomic_t *v);
+int atomic_dec_return(atomic_t *v);
+
+原子地存取整数变量. atomic_t 变量必须只通过这些函数存取.
+#include <asm/bitops.h>
+void set_bit(nr, void *addr);
+void clear_bit(nr, void *addr);
+void change_bit(nr, void *addr);
+test_bit(nr, void *addr);
+int test_and_set_bit(nr, void *addr);
+int test_and_clear_bit(nr, void *addr);
+int test_and_change_bit(nr, void *addr);
+原子地存取位值; 它们可用做标志或者锁变量. 使用这些函数阻止任何与并发存取这个位相
+关的竞争情况.
+#include <linux/seqlock.h>
+seqlock_t lock = SEQLOCK_UNLOCKED;
+seqlock_init(seqlock_t *lock);
+定义 seqlock 的包含文件, 已经初始化它们的 2 个方法.
+unsigned int read_seqbegin(seqlock_t *lock);
+unsigned int read_seqbegin_irqsave(seqlock_t *lock, unsigned long flags);
+int read_seqretry(seqlock_t *lock, unsigned int seq);
+int read_seqretry_irqrestore(seqlock_t *lock, unsigned int seq, unsigned long flags);
+获得一个 seqlock-保护 的资源的读权限的函数.
+void write_seqlock(seqlock_t *lock);
+void write_seqlock_irqsave(seqlock_t *lock, unsigned long flags);
+void write_seqlock_irq(seqlock_t *lock);
+void write_seqlock_bh(seqlock_t *lock);
+获取一个 seqlock-保护的资源的写权限的函数.
+void write_sequnlock(seqlock_t *lock);
+void write_sequnlock_irqrestore(seqlock_t *lock, unsigned long flags);
+void write_sequnlock_irq(seqlock_t *lock);
+void write_sequnlock_bh(seqlock_t *lock);
+释放一个 seqlock-保护的资源的写权限的函数.
+#include <linux/rcupdate.h>
+需要使用读取-拷贝-更新(RCU)机制的包含文件.
+void rcu_read_lock;
+void rcu_read_unlock;
+获取对由 RCU 保护的资源的原子读权限的宏定义.
+void call_rcu(struct rcu_head *head, void (*func)(void *arg), void *arg);
+安排一个回调在所有处理器已经被调度以及一个 RCU-保护的资源可用被安全的释放之后
+运行.
+
