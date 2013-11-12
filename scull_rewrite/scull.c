@@ -1,43 +1,44 @@
 #include "scull_head.h"
 
-module_param(scull_quantum, int, S_IRUGO);
-module_param(scull_qset, int, S_IRUGO);
-module_param(scull_major, int, S_IRUGO);
+module_param(glob_scull_quantum_num, int, S_IRUGO);
+module_param(glob_scull_qset_num, int, S_IRUGO);
+module_param(glob_scull_major, int, S_IRUGO);
 
 static int scull_register_major_minor(void)
 {
 	int result = -1;
 	
-	dev_t dev;
+	dev_t dev_major_minor;
 	
-	if(scull_major)
+	if(glob_scull_major)
 	{//if user has set the major number
-		dev = MKDEV(scull_major, scull_minor);
-		result = register_chrdev_region(dev, scull_nr_devs, "scull");
+		dev_major_minor = MKDEV(glob_scull_major, glob_scull_minor);
+		result = register_chrdev_region(dev_major_minor, glob_scull_dev_num, "scull");
 	}
 	else
 	{//if user didn't set the major number, we will dynamic allocate one
-		result = alloc_chrdev_region(&dev, scull_minor, scull_nr_devs, "scull");
-		scull_major = MAJOR(dev);
+		result = alloc_chrdev_region(&dev_major_minor, glob_scull_minor, glob_scull_dev_num, "scull");
+		glob_scull_major = MAJOR(dev_major_minor);
 	}
 
 	if(result < 0)
 	{
-		printk(KERN_WARNING "hu: scull: can't get major %d\n", scull_major);
+		printk(KERN_WARNING "hu: scull: can't get major %d\n", glob_scull_major);
 	}
 	
 	return result;
 }
 
-static int scull_setup_cdev(struct scull_dev *dev, int index)
+static int scull_setup_cdev(struct scull_dev *psculldev, int index)
 {
 	int err;
-	dev_t dev_num = MKDEV(scull_major, scull_minor + index);
+	dev_t dev_num = MKDEV(glob_scull_major, glob_scull_minor + index);
 
-	cdev_init(&(dev->cdev), &scull_fops);
-//	(dev->cdev).owner = THIS_MODULE;
-//	(dev->cdev).ops = &scull_fops;//do we really need that? we already did it in cdev_init
-	err = cdev_add(&(dev->cdev), dev_num, 1);
+	//create cdev
+	cdev_init(&(psculldev->cdev), &glob_scull_fops);
+//	(psculldev->cdev).owner = THIS_MODULE;
+//	(psculldev->cdev).ops = &glob_scull_fops;//do we really need that? we already did it in cdev_init
+	err = cdev_add(&(psculldev->cdev), dev_num, 1);
 
 	if(err)
 	{
@@ -52,47 +53,42 @@ static int scull_dev_init(void)
 	int i;
 	int result = 0;
 	
-	for(i = 0; i < scull_nr_devs && result == 0; i++)
+	for(i = 0; i < glob_scull_dev_num && result == 0; i++)
 	{
-		(scull_devices[i]).quantum = scull_quantum;
-		(scull_devices[i]).qset = scull_qset;
-		init_MUTEX(&((scull_devices[i]).sem));
-		result = scull_setup_cdev(&(scull_devices[i]), i);
+		(glob_scull_device_list[i]).quantumNum = glob_scull_quantum_num;
+		(glob_scull_device_list[i]).qsetNum = glob_scull_qset_num;
+		init_MUTEX(&((glob_scull_device_list[i]).sem));
+		result = scull_setup_cdev(&(glob_scull_device_list[i]), i);
 	}
 	
 	return result;
 }
 
-struct scull_qset * scull_follow(struct scull_dev *dev, int item)
+struct scull_qset * scull_follow(struct scull_dev *psculldev, int item)
 {
 
 }
 
 //to free all the memory in scull for quantum
-int scull_trim(struct scull_dev *dev)
+int scull_trim(struct scull_dev *psculldev)
 {
-	struct scull_qset *next, *dptr;
-	int qset = dev->qset;//"dev" is not NULL
-	int i;
+	struct scull_qset *pqsetNext, *pqsetCurrent, *pqsetTemp;
 	int result = 0;
-
-	for(dptr = dev->data; dptr; dptr = next)
-	{
-		//all the list item
-		if(dptr->data)
-		{
-			for(i = 0; i < qset; i ++)
-			{
-				kfree(dptr->data[i]);
-			}
-			kfree(dptr->data);
-			dptr->data = NULL;
-		}
-
-		next = dptr->next;
-		kfree(dptr);
-	}
 	
+	for(pqsetCurrent = psculldev->pqset; pqsetCurrent; pqsetCurrent = pqsetNext)
+	{
+		if(pqsetCurrent->data)
+		{
+			kfree(pqsetCurrent->data);
+			pqsetCurrent->data = NULL;
+		}
+		
+		pqsetTemp = pqsetCurrent;
+		pqsetNext = pqsetCurrent->pqsetNext;
+		kfree(pqsetTemp);
+		pqsetTemp = NULL;
+	}
+
 	return result;
 }
 
@@ -101,13 +97,14 @@ static void scull_cleanup(void)
 	int i;
 	
 	//unregister cdev
-	for(i = 0; i < scull_nr_devs; i ++)
+	for(i = 0; i < glob_scull_dev_num; i ++)
 	{
+		scull_trim(&(scull_devices[i]));
 		cdev_del(&(scull_devices[i].cdev));
 	}
 	
 	//unregister device number
-	unregister_chrdev_region(MKDEV(scull_major, scull_minor), scull_nr_devs);
+	unregister_chrdev_region(MKDEV(glob_scull_major, glob_scull_minor), glob_scull_dev_num);
 }
 
 void __init scull_init(void)
